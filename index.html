@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>AI quiz App</title>
+        <style>
+            body{
+                font-family: Arial;
+                padding: 30px;
+                background: #f5f5f5;
+            }
+            .container{
+                max-width: 600px;
+                margin: auto;
+                background: white;
+                padding: 20px;
+                box-shadow: 0 0 10px #ccc;
+            }
+            h2,p{
+                text-align: center;
+            }
+            #question{
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+            .options button{
+                display: block;
+                margin: 8px 0;
+                padding: 10px;
+                width: 100%;
+                cursor: pointer;
+            }
+            #timer{
+                text-align: right;
+                color: red;
+                font-weight: bold;
+            }
+            .hidden{
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div id="quizSection">
+                <div id="timer">Time Left: <span id="time">30</span>sec</div>
+                <div id="question">Loading..</div>
+                <div class="options" id="options"></div>
+            </div>
+            <div id="resultSection" class="hidden">
+                <h2>Quiz Finished!</h2>
+                <p>Your Score:<span id="scoreDisplay"></span></p>
+                <p>Correct Answers:<span id="correctDisplay"></span></p>
+                <p>Wrong Answers:<span id="wrongDisplay"></span></p>
+                <form id="submitForm">
+                    <input type="text" id="name" placeholder="Your Name" required><br><br>
+                    <input type="email" id="email" placeholder="Your Email" required><br><br>
+                    <button type="submit">Submit</button>
+                </form>
+                <p id="confirmationMsg"></p>
+            </div>
+        </div>
+        <script>
+            const quizData = [
+                { question: "What does HTML stand for?", options: ["Hyper Text Markup Language","Hot Mail","How to Make Landingpage"], correct: 0},
+                { question: "Which is used for styling web pages?", options: ["HTML","CSS","Python"], correct:1},
+                { question: "Inside which tag is Javascript written?", options: ["<js>","<script>","<java>"], correct: 1}
+            ];
+            let currentIndex = 0;
+            let score = 0;
+            let correctCount = 0;
+            let wrongCount = 0;
+            let timeLeft = 30;
+            const questionEl = document.getElementById('question');
+            const optionsEl = document.getElementById('options');
+            const timerEl = document.getElementById('time');
+            const quizSection = document.getElementById('quizSection');
+            const resultSection = document.getElementById('resultSection');
+            function loadQuestion(){
+                const q = quizData[currentIndex];
+                questionEl.textContent = q.question;
+                optionsEl.innerHTML = '';
+                q.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.textContent = opt;
+                    btn.onclick = () => checkAnswer(idx === q.correct);
+                    optionsEl.appendChild(btn);
+                });
+            }
+            function checkAnswer(isCorrect){
+                if(isCorrect){
+                    score++;
+                    correctCount++;
+                } else{
+                    wrongCount++;
+                }
+                currentIndex++;
+                if(currentIndex < quizData.length){
+                    loadQuestion();
+                } else{
+                    endQuiz();
+                }
+            }
+            function startTimer(){
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    timerEl.textContent = timeLeft;
+                    if(timeLeft <= 0 || currentIndex >= quizData.length){
+                        clearInterval(interval);
+                        endQuiz();
+                    }
+                }, 1000);
+            }
+            function endQuiz(){
+                quizSection.classList.add('hidden');
+                resultSection.classList.remove('hidden');
+                document.getElementById('scoreDisplay').textContent = `${score}/${quizData.length}`;
+                document.getElementById('correctDisplay').textContent = correctCount;
+                document.getElementById('wrongDisplay').textContent = wrongCount;
+            }
+            document.getElementById('submitForm').addEventListener('submit', e => {
+                e.preventDefault();
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const payload = {
+                    name, email, score,
+                    correct: correctCount,
+                    wrong: wrongCount,
+                    total: quizData.length
+                };
+                fetch("https://hook.relay.app/api/v1/playbook/cmd8h5yqm0f2g0om5axun79eu/trigger/x_OlFsbjZJdFLctzOifXig", {
+                    method: "POST",
+                    headers: {"Content-Type":
+                        "application/json"},
+                        body: JSON.stringify(payload)
+                })
+                .then(res => res.text())
+                .then(data => {
+                    document.getElementById('confirmationMsg').textContent = "Results submitted and emailed!";
+                })
+            })
+            loadQuestion();
+            startTimer();
+        </script>
+    </body>
+</html>
